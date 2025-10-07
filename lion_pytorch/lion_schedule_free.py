@@ -50,6 +50,7 @@ def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2, pow):
     # decay the momentum running average coefficient
 
     exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
+    return sign_agreement
 
 
 # class
@@ -116,9 +117,13 @@ class Lion(Optimizer):
 
                 if len(state) == 0:
                     state["exp_avg"] = torch.zeros_like(p)
+                    state["sign_agreement"] = []
 
                 exp_avg = state["exp_avg"]
 
-                self.update_fn(p, grad, exp_avg, lr, wd, beta1, beta2, pow)
+                sign_agreement = self.update_fn(
+                    p, grad, exp_avg, lr, wd, beta1, beta2, pow
+                )
+                state["sign_agreement"].append(sign_agreement)
 
         return loss
