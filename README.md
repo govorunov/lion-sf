@@ -6,6 +6,10 @@
 
 It is so simple, we may as well get it accessible and used asap by everyone to train some great models, if it really works 🤞
 
+### Lion Schedule Free
+
+This repository also includes **Lion Schedule Free** (LionSF), a variant that eliminates the need for LR schedulers. The key difference from standard Lion is the addition of a *sign agreement* mechanism that scales updates based on directional consistency between the momentum and current gradient. This allows LionSF to adapt its effective learning rate automatically. 
+
 ### Instructions
 - Learning rate and weight decay: the authors write in Section 5 - `Based on our experience, a suitable learning rate for Lion is typically 3-10x smaller than that for AdamW. Since the effective weight decay is lr * λ, the value of decoupled weight decay λ used for Lion is 3-10x larger than that for AdamW in order to maintain a similar strength.` The initial value, peak value, and end value in the learning rate schedule should be changed ***simultaneously*** with the same ratio compared to AdamW, [evidenced by a researcher](https://github.com/lucidrains/lion-pytorch/discussions/1#discussioncomment-5239900).
 
@@ -14,6 +18,8 @@ It is so simple, we may as well get it accessible and used asap by everyone to t
 - β1 and β2: the authors write in Section 5 - `The default values for β1 and β2 in AdamW are set as 0.9 and 0.999, respectively, with an ε of 1e−8, while in Lion, the default values for β1 and β2 are discovered through the program search process and set as 0.9 and 0.99, respectively.` Similar to how people reduce β2 to 0.99 or smaller and increase ε to 1e-6 in AdamW to improve stability, using `β1=0.95, β2=0.98` in Lion can also be helpful in mitigating instability during training, suggested by the authors. This was <a href="https://github.com/lucidrains/lion-pytorch/issues/13#issuecomment-1455123143">corroborated by a researcher</a>.
 
 ### Updates
+- Updates: Added Lion Schedule Free
+
 - Update: seems to work for my local enwik8 autoregressive language modeling.
 
 - Update 2: <a href="https://api.wandb.ai/links/lucidrains/d4v6c8sl">experiments</a>, seems much worse than Adam if learning rate held constant.
@@ -65,6 +71,19 @@ loss.backward()
 
 opt.step()
 opt.zero_grad()
+```
+
+### Lion Schedule Free Usage
+
+```python
+# Use Lion Schedule Free (no LR scheduler needed)
+
+from lion_pytorch import LionSF
+
+opt = LionSF(model.parameters(), lr=1e-4, weight_decay=1e-2)
+
+# Use without any learning rate scheduler
+# The optimizer adapts its effective learning rate automatically
 ```
 
 To use a fused kernel for updating the parameters, first `pip install triton -U --pre`, then
