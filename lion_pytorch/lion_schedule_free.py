@@ -34,7 +34,7 @@ def exists(val):
 #     exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
 
 
-def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2, pow):
+def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2, pow, sign_agreement):
     # stepweight decay
 
     p.data.mul_(1.0 - lr * wd)
@@ -42,15 +42,15 @@ def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2, pow):
     # weight update
 
     update = exp_avg.clone().mul_(beta1).add(grad, alpha=1.0 - beta1).sign_()
-    sign_agreement = (((update * grad) > 0).mean(dtype=torch.float32) - 0.5) * 2.0
-    scale = sign_agreement.abs().pow(pow)
+    s_a = (((update * grad) > 0).mean(dtype=torch.float32) * 2.0 - 1.0).abs()
+    scale = sign_agreement.clone().mul_(beta1).add(s_a, alpha=1.0 - beta1).pow(pow)
 
     p.add_(update, alpha=-lr * scale)
 
     # decay the momentum running average coefficient
 
     exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
-    return sign_agreement
+    sign_agreement.mul_(beta2).add_(s_a, alpha=1.0 - beta2)
 
 
 # class
@@ -117,13 +117,13 @@ class Lion(Optimizer):
 
                 if len(state) == 0:
                     state["exp_avg"] = torch.zeros_like(p)
-                    state["sign_agreement"] = []
+                    state["sign_agreement"] = torch.tensor(0.0, device=p.device)
 
                 exp_avg = state["exp_avg"]
+                sign_agreement = state["sign_agreement"]
 
-                sign_agreement = self.update_fn(
-                    p, grad, exp_avg, lr, wd, beta1, beta2, pow
+                self.update_fn(
+                    p, grad, exp_avg, lr, wd, beta1, beta2, pow, sign_agreement
                 )
-                state["sign_agreement"].append(sign_agreement)
 
         return loss
