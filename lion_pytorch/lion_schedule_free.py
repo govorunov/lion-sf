@@ -42,8 +42,10 @@ def update_fn(p, grad, exp_avg, lr, wd, beta1, beta2, pow, sign_agreement):
     # weight update
 
     update = exp_avg.clone().mul_(beta1).add(grad, alpha=1.0 - beta1).sign_()
-    s_a = (((update * grad) > 0).mean(dtype=torch.float32) * 2.0 - 1.0).abs()
-    scale = sign_agreement.clone().mul_(beta1).add(s_a, alpha=1.0 - beta1).pow(pow)
+    s_a = ((update * grad) > 0).mean(dtype=torch.float32) * 2.0 - 1.0
+    scale = (
+        sign_agreement.clone().mul_(beta1).add(s_a, alpha=1.0 - beta1).abs().pow(pow)
+    )
 
     p.add_(update, alpha=-lr * scale)
 
